@@ -77,8 +77,14 @@ class _MainScreenState extends State<MainScreenApp>{
         onPressed: () async{
           final Task? newTask = await Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => AddTaskScreen(),
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) => AddTaskScreen(),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: child,
+                );
+              },
             ),
           );
 
@@ -145,7 +151,7 @@ class AddTaskScreen extends StatelessWidget {
                 );
                 Navigator.pop(context, newTask);
               },
-              child: Text("Zapisz"),
+              child: Center(child: Text("Zapisz")),
             ),
           ],
         ),
