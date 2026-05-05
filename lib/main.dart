@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'task_repository.dart';
+import '/services/task_api_service.dart';
 void main() {
   runApp(const MyApp());
 }
@@ -19,7 +20,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-//ZADANIE 2
+
 class MainScreenApp extends StatefulWidget{
   @override
     State<MainScreenApp> createState() => _MainScreenState();
@@ -155,59 +156,73 @@ class _MainScreenState extends State<MainScreenApp>{
                   ],
                 ),
 
-                    Expanded(child:  ListView.builder(
+                Expanded(
+                  //ZADANIE 2
+                  child: FutureBuilder<List<Task>>(
 
-                        itemCount: filteredTasks.length,
+                    future: TaskApiService.fetchTasks(),
+                    builder: (context, snapshot) {
+                      //ZADANIE 3
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
 
-                    itemBuilder: (context, index) {
-                      final task = filteredTasks[index];
-                      return Dismissible(
-                          direction: DismissDirection.endToStart,
-                          key: ValueKey(task.title),
-                          onDismissed: (direction) {
+
+                      if (snapshot.hasError) {
+                        return Center(child: Text("Błąd: ${snapshot.error}"));
+                      }
+
+
+                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return const Center(child: Text("Brak zadań."));
+                      }
+
+                      final tasksFromApi = snapshot.data!;
+
+                      return ListView.builder(
+                        itemCount: tasksFromApi.length,
+                        itemBuilder: (context, index) {
+                          final task = tasksFromApi[index];
+
+                          return Dismissible(
+                            direction: DismissDirection.endToStart,
+                            key: ValueKey(task.title),
+                            onDismissed: (direction) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Center(child: Text(
-                                      'Zadanie usunięte: ${task.title}')),
-                                ),
+                                SnackBar(content: Center(child: Text('Zadanie usunięte: ${task.title}'))),
                               );
+                            },
 
+                            child: TaskCard(
+                              title: task.title,
+                              subtitle: 'termin: ${task.daeadline} | priorytet: ${task.priority}',
+                              done: task.done,
+                              onChanged: (value) {
 
-                          },
-
-
-                        child: TaskCard(
-                          title: task.title,
-                          subtitle: 'termin: ${task.daeadline} | priorytet: ${task.priority}',
-                          done: task.done,
-                          onChanged: (value) {
-                            setState(() {
-                              task.done = value!;
-                            });
-                          },
-
-                          onTap: () async {
-                            final Task? updatedTask = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => EditTaskScreen(task: task),
-                              ),
-                            );
-
-                            if (updatedTask != null) {
-                              setState(() {
-                                int originalIndex = TaskRepository.tasks.indexOf(task);
-                                TaskRepository.tasks[originalIndex] = updatedTask;
-                              });
-                            }
-                          },
-                        ),
+                                setState(() {
+                                  task.done = value!;
+                                });
+                              },
+                              onTap: () async {
+                                final Task? updatedTask = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => EditTaskScreen(task: task),
+                                  ),
+                                );
+                                if (updatedTask != null) {
+                                  setState(() {
+                                    tasksFromApi[index] = updatedTask;
+                                  });
+                                }
+                              },
+                            ),
+                          );
+                        },
                       );
-
-
-
-                    }
-                ) )
+                    },
+                  ),
+                )
 
 
               ]
@@ -216,7 +231,7 @@ class _MainScreenState extends State<MainScreenApp>{
           ,
         ),
 
-        //ZADANIE 1
+
 
       floatingActionButton: FloatingActionButton(
         onPressed: () async{
