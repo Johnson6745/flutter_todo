@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 import 'task_repository.dart';
 import '/services/task_api_service.dart';
-void main() {
+import '/services/task_sync_service.dart';
+import '/services/task_local_database.dart';
+import 'package:hive_ce_flutter/hive_flutter.dart';
+
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+  await Hive.openBox("tasks");
   runApp(const MyApp());
 }
 
@@ -29,6 +36,16 @@ class MainScreenApp extends StatefulWidget{
 
 class _MainScreenState extends State<MainScreenApp>{
   String selectedFilter = "wszystkie";
+  late Future<List<Task>> tasksFuture;
+  @override
+  void initState() {
+    super.initState();
+    tasksFuture = loadTasks();
+  }
+  Future<List<Task>> loadTasks() async {
+    await TaskSyncService.loadInitialDataIfNeeded();
+    return TaskLocalDatabase.getTasks();
+  }
   @override
   Widget build(BuildContext context) {
     final taskCountDone = TaskRepository.tasks.where((task) => task.done).length;
@@ -157,32 +174,40 @@ class _MainScreenState extends State<MainScreenApp>{
                 ),
 
                 Expanded(
-                  //ZADANIE 2
+
                   child: FutureBuilder<List<Task>>(
 
-                    future: TaskApiService.fetchTasks(),
+                    future: tasksFuture,
                     builder: (context, snapshot) {
-                      //ZADANIE 3
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(child: CircularProgressIndicator());
                       }
-
 
                       if (snapshot.hasError) {
                         return Center(child: Text("Błąd: ${snapshot.error}"));
                       }
 
 
-                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                        return const Center(child: Text("Brak zadań."));
+                      final allTasksFromDb = snapshot.data ?? [];
+
+
+                      List<Task> filteredTasks;
+                      if (selectedFilter == "wykonane") {
+                        filteredTasks = allTasksFromDb.where((t) => t.done).toList();
+                      } else if (selectedFilter == "do zrobienia") {
+                        filteredTasks = allTasksFromDb.where((t) => !t.done).toList();
+                      } else {
+                        filteredTasks = allTasksFromDb;
                       }
 
-                      final tasksFromApi = snapshot.data!;
+                      if (filteredTasks.isEmpty) {
+                        return const Center(child: Text("Brak zadań dla tego filtru."));
+                      }
 
                       return ListView.builder(
-                        itemCount: tasksFromApi.length,
+                        itemCount: filteredTasks.length,
                         itemBuilder: (context, index) {
-                          final task = tasksFromApi[index];
+                          final task = filteredTasks[index];
 
                           return Dismissible(
                             direction: DismissDirection.endToStart,
@@ -197,12 +222,20 @@ class _MainScreenState extends State<MainScreenApp>{
                               title: task.title,
                               subtitle: 'termin: ${task.daeadline} | priorytet: ${task.priority}',
                               done: task.done,
-                              onChanged: (value) {
-
+                              onChanged: (value) async {
+                                final updatedTask = Task(
+                                  id: task.id,
+                                  title: task.title,
+                                  daeadline: task.daeadline,
+                                  priority: task.priority,
+                                  done: value ?? false,
+                                );
+                                await TaskLocalDatabase.updateTask(updatedTask);
                                 setState(() {
-                                  task.done = value!;
+                                  tasksFuture = loadTasks();
                                 });
                               },
+
                               onTap: () async {
                                 final Task? updatedTask = await Navigator.push(
                                   context,
@@ -211,8 +244,9 @@ class _MainScreenState extends State<MainScreenApp>{
                                   ),
                                 );
                                 if (updatedTask != null) {
+                                  await TaskLocalDatabase.updateTask(updatedTask);
                                   setState(() {
-                                    tasksFromApi[index] = updatedTask;
+                                    tasksFuture = loadTasks();
                                   });
                                 }
                               },
@@ -250,8 +284,9 @@ class _MainScreenState extends State<MainScreenApp>{
 
 
           if(newTask != null){
+            await TaskLocalDatabase.addTask(newTask);
             setState(() {
-              TaskRepository.tasks.add(newTask);
+              tasksFuture = loadTasks();
             });
           }
         },
@@ -304,6 +339,7 @@ class AddTaskScreen extends StatelessWidget {
             ElevatedButton(
               onPressed: () {
                 final newTask = Task(
+                  id: DateTime.now().millisecondsSinceEpoch,
                   title: titleController.text,
                   daeadline: deadlineController.text,
                   priority: priorityController.text,
@@ -346,6 +382,7 @@ class EditTaskScreen extends StatelessWidget {
             ElevatedButton(
               onPressed: () {
                 final updatedTask = Task(
+                  id: task.id,
                   title: titleController.text,
                   daeadline: deadlineController.text,
                   priority: priorityController.text,
@@ -397,3 +434,7 @@ class TaskCard extends StatelessWidget {
     ));
   }
 }
+
+
+
+
