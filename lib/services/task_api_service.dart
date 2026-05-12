@@ -12,7 +12,7 @@ class TaskApiService {
       final List todos = data["todos"];
       return todos.map((todo) {
         return Task(
-          id: todo['id'],
+          id: todo['id'].toString(),
           title: todo["todo"],
           daeadline: "brak",
           done: todo["completed"],

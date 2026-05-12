@@ -4,7 +4,7 @@ import '/services/task_api_service.dart';
 import '/services/task_sync_service.dart';
 import '/services/task_local_database.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
-
+import 'package:uuid/uuid.dart';
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
@@ -211,7 +211,7 @@ class _MainScreenState extends State<MainScreenApp>{
 
                           return Dismissible(
                             direction: DismissDirection.endToStart,
-                            key: ValueKey(task.title),
+                            key: ValueKey(task.id),
                             onDismissed: (direction) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(content: Center(child: Text('Zadanie usunięte: ${task.title}'))),
@@ -338,8 +338,9 @@ class AddTaskScreen extends StatelessWidget {
             ),),
             ElevatedButton(
               onPressed: () {
+                var uuid = Uuid();
                 final newTask = Task(
-                  id: DateTime.now().millisecondsSinceEpoch,
+                  id: uuid.v4(),
                   title: titleController.text,
                   daeadline: deadlineController.text,
                   priority: priorityController.text,

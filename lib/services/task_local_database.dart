@@ -6,7 +6,13 @@ class TaskLocalDatabase {
   static List<Task> getTasks() {
 
     return _box.values.map((item) {
-      return Task.fromMap(Map<String, dynamic>.from(item));
+      final Map<dynamic, dynamic> hiveMap = item as Map;
+
+      final Map<String, dynamic> taskMap = hiveMap.map(
+            (key, value) => MapEntry(key.toString(), value),
+      );
+
+      return Task.fromMap(taskMap);
     }).toList();
   }
   static Future<void> saveTasks(List<Task> tasks) async {
@@ -19,6 +25,7 @@ class TaskLocalDatabase {
   static Future<void> addTask(Task task) async {
     await _box.put(task.id, task.toMap());
   }
+
   static Future<void> updateTask(Task task) async {
     await _box.put(task.id, task.toMap());
   }
