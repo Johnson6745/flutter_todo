@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:hive_ce/hive.dart';
 import '../task_repository.dart';
 class TaskLocalDatabase {
@@ -24,18 +26,22 @@ class TaskLocalDatabase {
   }
   static Future<void> addTask(Task task) async {
     await _box.put(task.id, task.toMap());
+    log("Dodano nowe zadanie", name: "TaskLocalDatabase");
   }
 
   static Future<void> updateTask(Task task) async {
     await _box.put(task.id, task.toMap());
+    log("Zaaktualizowano zadanie", name: "TaskLocalDatabase");
   }
 
   static Future<void> deleteTask(int id) async {
 
     await _box.delete(id);
+    log("Usunieto jedno zadanie", name: "TaskLocalDatabase");
   }
   static Future<void> deleteAllTasks() async {
     await _box.clear();
+    log("Usunieto wszystkie zadania", name: "TaskLocalDatabase");
   }
   static bool isEmpty() {
     return _box.isEmpty;

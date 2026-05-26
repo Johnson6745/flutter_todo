@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'task_repository.dart';
 import '/services/task_api_service.dart';
@@ -5,10 +7,14 @@ import '/services/task_sync_service.dart';
 import '/services/task_local_database.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
+
 void main() async{
+  log("Hello to jest start aplikacji");
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   await Hive.openBox("tasks");
+// do testowania logow z api service
+//  await Hive.deleteFromDisk();
   runApp(const MyApp());
 }
 

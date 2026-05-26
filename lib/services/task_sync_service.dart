@@ -1,3 +1,5 @@
+import 'dart:math' hide log;
+import 'dart:developer';
 import 'task_api_service.dart';
 import 'task_local_database.dart';
 class TaskSyncService {
@@ -7,5 +9,6 @@ class TaskSyncService {
     }
     final tasks = await TaskApiService.fetchTasks();
     await TaskLocalDatabase.saveTasks(tasks);
+    log("Dodano zadania z API do lokalnej bazy danych" , name: "TaskSyncService");
   }
 }
