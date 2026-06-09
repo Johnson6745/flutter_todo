@@ -46,4 +46,5 @@ class TaskLocalDatabase {
   static bool isEmpty() {
     return _box.isEmpty;
   }
+  
 }

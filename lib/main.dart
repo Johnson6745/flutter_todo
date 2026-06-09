@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_todo/services/notification_service.dart';
 import 'task_repository.dart';
 import '/services/task_api_service.dart';
 import '/services/task_sync_service.dart';
@@ -13,6 +14,7 @@ void main() async{
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   await Hive.openBox("tasks");
+  await NotificationService.init();
 // do testowania logow z api service
 //  await Hive.deleteFromDisk();
   runApp(const MyApp());
@@ -229,6 +231,8 @@ class _MainScreenState extends State<MainScreenApp>{
                               subtitle: 'termin: ${task.daeadline} | priorytet: ${task.priority}',
                               done: task.done,
                               onChanged: (value) async {
+                                final isDone = value ?? false;
+                                final wasDone = task.done;
                                 final updatedTask = Task(
                                   id: task.id,
                                   title: task.title,
@@ -237,6 +241,9 @@ class _MainScreenState extends State<MainScreenApp>{
                                   done: value ?? false,
                                 );
                                 await TaskLocalDatabase.updateTask(updatedTask);
+                                if (!wasDone && isDone) {
+                                  await NotificationService.showTaskDoneNotification(task.title);
+                                }
                                 setState(() {
                                   tasksFuture = loadTasks();
                                 });
